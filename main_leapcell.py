@@ -327,7 +327,5 @@ async def root():
     return {"message": "String Analyzer Service is running on Leapcell!"}
 
 # --- Server Startup ---
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+# For Leapcell deployment, uvicorn is called directly from leapcell.yaml
+# The app instance is exported for uvicorn to use
