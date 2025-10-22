@@ -1,0 +1,16 @@
+name: string-analyzer-service
+runtime: python3.11
+
+build:
+  commands:
+    - pip install -r requirements_leapcell.txt
+
+run:
+  command: python main_leapcell.py
+
+env:
+  PORT: 8000
+
+health_check:
+  path: /
+  port: 8000

@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'String Analyzer Service - Lambda Function with DynamoDB'
+
+Parameters:
+  FunctionName:
+    Type: String
+    Default: StringAnalyzerService
+    Description: Name of the Lambda function
+  
+  TableName:
+    Type: String
+    Default: StringAnalyzerTable
+    Description: Name of the DynamoDB table
+
+Resources:
+  # DynamoDB Table
+  StringAnalyzerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref TableName
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: Project
+          Value: StringAnalyzer
+
+  # IAM Role for Lambda
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${FunctionName}-execution-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                Resource: !GetAtt StringAnalyzerTable.Arn
+
+  # Lambda Function
+  StringAnalyzerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref FunctionName
+      Runtime: python3.11
+      Handler: main.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {
+                  'statusCode': 200,
+                  'body': 'Please deploy your code using the deployment script'
+              }
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref TableName
+      Timeout: 30
+      MemorySize: 512
+      Tags:
+        - Key: Project
+          Value: StringAnalyzer
+
+  # Lambda Function URL
+  FunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt StringAnalyzerFunction.Arn
+      AuthType: NONE
+      Cors:
+        AllowCredentials: false
+        AllowHeaders:
+          - '*'
+        AllowMethods:
+          - '*'
+        AllowOrigins:
+          - '*'
+        ExposeHeaders:
+          - '*'
+        MaxAge: 86400
+
+  # Permission for Function URL
+  FunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StringAnalyzerFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+Outputs:
+  FunctionUrl:
+    Description: 'Lambda Function URL'
+    Value: !GetAtt FunctionUrl.FunctionUrl
+    Export:
+      Name: !Sub "${AWS::StackName}-FunctionUrl"
+  
+  TableName:
+    Description: 'DynamoDB Table Name'
+    Value: !Ref StringAnalyzerTable
+    Export:
+      Name: !Sub "${AWS::StackName}-TableName"
+  
+  FunctionName:
+    Description: 'Lambda Function Name'
+    Value: !Ref StringAnalyzerFunction
+    Export:
+      Name: !Sub "${AWS::StackName}-FunctionName"
